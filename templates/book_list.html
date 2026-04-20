@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+{% block title %}图书列表{% endblock %}
+
+{% block content %}
+<div class="section-title mb-4">
+    <span class="title-dot"></span>
+    <i class="bi bi-journals text-primary"></i> 图书列表
+</div>
+
+<!-- 搜索框 -->
+<form method="GET" action="{{ url_for('book_list') }}" class="mb-3">
+    <!-- 隐藏保留当前分类 -->
+    <input type="hidden" name="category" value="{{ category }}">
+    <div class="input-group search-box shadow-sm">
+        <input type="text" name="keyword" class="form-control"
+               placeholder="输入书名或作者关键词搜索..." value="{{ keyword }}">
+        <button class="btn-search" type="submit">
+            <i class="bi bi-search me-1"></i>搜索
+        </button>
+        {% if keyword %}
+        <a href="{{ url_for('book_list', category=category) }}"
+           class="btn-clear text-decoration-none d-flex align-items-center">
+            <i class="bi bi-x-lg"></i>
+        </a>
+        {% endif %}
+    </div>
+</form>
+
+<!-- 分类标签栏 -->
+<div class="mb-4 d-flex flex-wrap gap-2">
+    {% for cat in categories %}
+    <a href="{{ url_for('book_list', category=cat, keyword=keyword) }}"
+       class="text-decoration-none">
+        <span class="px-3 py-1 rounded-pill"
+              style="font-size:.85rem;cursor:pointer;transition:all .18s;
+                     {% if category == cat %}
+                         background:#1565c0;color:#fff;font-weight:600;
+                     {% else %}
+                         background:#e8f0fe;color:#1565c0;
+                     {% endif %}">
+            {% if cat == '全部' %}<i class="bi bi-grid me-1"></i>{% endif %}
+            {{ cat }}
+        </span>
+    </a>
+    {% endfor %}
+</div>
+
+{% if keyword or category != '全部' %}
+<p class="search-result-tip mb-3">
+    {% if keyword %}搜索 "<strong>{{ keyword }}</strong>"{% endif %}
+    {% if category != '全部' %}
+        {% if keyword %}·{% endif %}
+        分类 "<strong>{{ category }}</strong>"
+    {% endif %}
+    &nbsp;共 <strong>{{ books|length }}</strong> 本
+</p>
+{% endif %}
+
+<!-- 图书卡片 -->
+<div class="row g-3">
+    {% if books %}
+        {% for book in books %}
+        <div class="col-6 col-md-4 col-lg-3">
+            <a href="{{ url_for('book_detail', book_id=book.id) }}" class="text-decoration-none">
+                <div class="book-card h-100">
+                    <div style="position:relative">
+                        <img src="{{ url_for('static', filename='images/' + book.cover_image) }}"
+                             class="book-cover" alt="{{ book.title }}"
+                             onerror="this.src='{{ url_for('static', filename='images/default.jpg') }}'">
+                        <!-- 分类角标 -->
+                        {% if book.category %}
+                        <span style="position:absolute;top:8px;left:8px;
+                                     background:rgba(21,101,192,.85);color:#fff;
+                                     font-size:.72rem;padding:2px 8px;border-radius:20px;
+                                     backdrop-filter:blur(4px)">
+                            {{ book.category }}
+                        </span>
+                        {% endif %}
+                    </div>
+                    <div class="card-body d-flex flex-column">
+                        <div class="book-title" title="{{ book.title }}">{{ book.title }}</div>
+                        <div class="book-author">{{ book.author }}</div>
+                        {% if book.publisher %}
+                        <div class="book-author" style="font-size:.74rem">{{ book.publisher }}</div>
+                        {% endif %}
+                        <div class="mt-auto pt-1 d-flex justify-content-between align-items-center">
+                            <span class="stock-badge
+                                {% if book.stock > 3 %}bg-success text-white
+                                {% elif book.stock > 0 %}bg-warning text-dark
+                                {% else %}bg-light text-secondary{% endif %}">
+                                {% if book.stock > 0 %}库存 {{ book.stock }}{% else %}暂无库存{% endif %}
+                            </span>
+                            <span style="font-size:.78rem;color:#b0bec5">
+                                详情 <i class="bi bi-arrow-right"></i>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="col-12">
+            <div class="empty-state">
+                <div class="empty-icon"><i class="bi bi-search"></i></div>
+                <p>
+                    {% if keyword %}没有找到"{{ keyword }}"相关图书
+                    {% elif category != '全部' %}「{{ category }}」分类暂无图书
+                    {% else %}暂无图书{% endif %}
+                </p>
+                <a href="{{ url_for('book_list') }}" class="btn btn-outline-primary px-4">
+                    查看全部图书
+                </a>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

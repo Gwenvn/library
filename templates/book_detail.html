@@ -1,0 +1,227 @@
+{% extends 'base.html' %}
+{% block title %}{{ book.title }} - 图书详情{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('index') }}">首页</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('book_list') }}">图书列表</a></li>
+        <li class="breadcrumb-item active">{{ book.title }}</li>
+    </ol>
+</nav>
+
+<!-- 主信息卡 -->
+<div class="detail-card">
+    <div class="row g-4 align-items-start">
+        <div class="col-md-3 text-center">
+            <img src="{{ url_for('static', filename='images/' + book.cover_image) }}"
+                 class="book-detail-cover" alt="{{ book.title }}"
+                 onerror="this.src='{{ url_for('static', filename='images/default.jpg') }}'">
+            <!-- 分类标签 -->
+            {% if book.category %}
+            <div class="mt-3">
+                <span class="badge rounded-pill px-3 py-2"
+                      style="background:#e8f0fe;color:#1565c0;font-size:.85rem">
+                    <i class="bi bi-tag me-1"></i>{{ book.category }}
+                </span>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="col-md-9">
+            <h2 class="book-detail-title">{{ book.title }}</h2>
+
+            <div class="info-row">
+                <span class="info-label"><i class="bi bi-person me-1"></i>作者</span>
+                <span class="info-value">{{ book.author }}</span>
+            </div>
+            {% if book.publisher %}
+            <div class="info-row">
+                <span class="info-label"><i class="bi bi-building me-1"></i>出版社</span>
+                <span class="info-value">{{ book.publisher }}</span>
+            </div>
+            {% endif %}
+            {% if book.isbn %}
+            <div class="info-row">
+                <span class="info-label"><i class="bi bi-upc me-1"></i>ISBN</span>
+                <span class="info-value text-muted">{{ book.isbn }}</span>
+            </div>
+            {% endif %}
+            <div class="info-row">
+                <span class="info-label"><i class="bi bi-archive me-1"></i>库存</span>
+                <span class="info-value">
+                    {% if book.stock > 0 %}
+                        <span class="badge bg-success px-3 py-2 fs-6">{{ book.stock }} 本可借</span>
+                    {% else %}
+                        <span class="badge bg-secondary px-3 py-2 fs-6">暂无库存</span>
+                    {% endif %}
+                </span>
+            </div>
+            <!-- 评分展示 -->
+            {% if comments %}
+            <div class="info-row">
+                <span class="info-label"><i class="bi bi-star me-1"></i>评分</span>
+                <span class="info-value">
+                    {% set avg = (comments | sum(attribute='rating')) / comments|length %}
+                    {% for i in range(1, 6) %}
+                        <i class="bi bi-star{% if i <= avg|round %}-fill text-warning{% else %} text-muted{% endif %}"></i>
+                    {% endfor %}
+                    <span class="text-muted ms-1" style="font-size:.88rem">
+                        {{ '%.1f'|format(avg) }} 分（{{ comments|length }} 人评价）
+                    </span>
+                </span>
+            </div>
+            {% endif %}
+
+            <div class="mt-4 d-flex gap-2 flex-wrap">
+                {% if session.get('user_id') %}
+                    {% if book.stock > 0 %}
+                        <a href="{{ url_for('borrow_book', book_id=book.id) }}"
+                           class="btn btn-primary px-4 py-2"
+                           onclick="return confirm('确认借阅《{{ book.title }}》？')">
+                            <i class="bi bi-bookmark-plus me-1"></i> 立即借阅
+                        </a>
+                    {% else %}
+                        <button class="btn btn-secondary px-4 py-2" disabled>
+                            <i class="bi bi-x-circle me-1"></i> 库存不足
+                        </button>
+                    {% endif %}
+                {% else %}
+                    <a href="{{ url_for('login') }}" class="btn btn-primary px-4 py-2">
+                        <i class="bi bi-box-arrow-in-right me-1"></i> 登录后借阅
+                    </a>
+                {% endif %}
+                <a href="{{ url_for('book_list') }}" class="btn btn-outline-secondary px-3 py-2">
+                    <i class="bi bi-arrow-left me-1"></i> 返回列表
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 简介 -->
+{% if book.description %}
+<div class="desc-card mt-3">
+    <div class="section-title mb-3">
+        <span class="title-dot"></span>
+        <i class="bi bi-card-text text-primary"></i> 内容简介
+    </div>
+    <p>{{ book.description }}</p>
+</div>
+{% endif %}
+
+<!-- 评论区 -->
+<div class="desc-card mt-3">
+    <div class="section-title mb-4">
+        <span class="title-dot"></span>
+        <i class="bi bi-chat-dots text-primary"></i> 读者评论
+        <span class="badge bg-primary rounded-pill ms-2">{{ comments|length }}</span>
+    </div>
+
+    <!-- 发表评论 -->
+    {% if session.get('user_id') %}
+        {% if not already_commented %}
+        <form method="POST" action="{{ url_for('add_comment', book_id=book.id) }}" class="mb-4">
+            <div class="mb-3">
+                <label class="form-label-sm-bold">我的评分</label>
+                <div class="d-flex gap-2 align-items-center" id="star-wrap">
+                    {% for i in range(1, 6) %}
+                    <label style="cursor:pointer;font-size:1.6rem;color:#ffc107" title="{{ i }}星">
+                        <input type="radio" name="rating" value="{{ i }}"
+                               style="display:none" {% if i == 5 %}checked{% endif %}>
+                        <i class="bi bi-star-fill" id="star-{{ i }}"></i>
+                    </label>
+                    {% endfor %}
+                    <span class="text-muted small ms-1" id="star-label">5 星</span>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label-sm-bold">评论内容</label>
+                <textarea name="content" class="form-control" rows="3"
+                          placeholder="说说你对这本书的看法..." required
+                          style="border:1.5px solid #dde3f0;border-radius:10px;
+                                 background:#f8faff;font-size:.93rem"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary px-4">
+                <i class="bi bi-send me-1"></i> 发表评论
+            </button>
+        </form>
+        {% else %}
+        <div class="alert alert-info border-0 rounded-3 mb-4" style="font-size:.9rem">
+            <i class="bi bi-check-circle me-2"></i>你已经评论过这本书了
+        </div>
+        {% endif %}
+    {% else %}
+    <div class="alert border-0 rounded-3 mb-4"
+         style="background:#f0f4fb;font-size:.9rem">
+        <i class="bi bi-info-circle me-2 text-primary"></i>
+        <a href="{{ url_for('login') }}" class="text-primary fw-bold">登录</a> 后才能发表评论
+    </div>
+    {% endif %}
+
+    <!-- 评论列表 -->
+    {% if comments %}
+        {% for c in comments %}
+        <div class="d-flex gap-3 mb-3 pb-3 {% if not loop.last %}border-bottom{% endif %}"
+             style="border-color:#f0f4fb!important">
+            <!-- 头像 -->
+            <div style="width:40px;height:40px;border-radius:50%;flex-shrink:0;
+                        background:linear-gradient(135deg,#42a5f5,#1565c0);
+                        display:flex;align-items:center;justify-content:center;
+                        color:#fff;font-weight:700;font-size:.95rem">
+                {{ c.user.username[0] | upper }}
+            </div>
+            <div class="flex-grow-1">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <div>
+                        <span class="fw-semibold" style="color:#1a237e;font-size:.9rem">
+                            {{ c.user.username }}
+                        </span>
+                        <span class="ms-2">
+                            {% for i in range(1, 6) %}
+                                <i class="bi bi-star{% if i <= c.rating %}-fill text-warning{% else %} text-muted{% endif %}"
+                                   style="font-size:.82rem"></i>
+                            {% endfor %}
+                        </span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="text-muted" style="font-size:.78rem">
+                            {{ c.created_at.strftime('%Y-%m-%d %H:%M') }}
+                        </span>
+                        {% if session.get('user_id') == c.user_id %}
+                        <a href="{{ url_for('delete_comment', comment_id=c.id) }}"
+                           class="text-danger text-decoration-none" style="font-size:.8rem"
+                           onclick="return confirm('确认删除该评论？')">
+                            <i class="bi bi-trash"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                <p class="mb-0 text-secondary" style="font-size:.9rem;line-height:1.7">
+                    {{ c.content }}
+                </p>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="text-center py-4">
+            <i class="bi bi-chat-square text-muted" style="font-size:2.5rem"></i>
+            <p class="text-muted mt-2 mb-0">暂无评论，快来发表第一条评论吧！</p>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+// 星级评分交互
+document.querySelectorAll('#star-wrap input[type=radio]').forEach(radio => {
+    radio.addEventListener('change', function () {
+        const val = parseInt(this.value);
+        document.getElementById('star-label').textContent = val + ' 星';
+        for (let i = 1; i <= 5; i++) {
+            const star = document.getElementById('star-' + i);
+            star.className = i <= val ? 'bi bi-star-fill' : 'bi bi-star';
+        }
+    });
+});
+</script>
+{% endblock %}

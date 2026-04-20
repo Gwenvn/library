@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+{% block title %}首页 - 在线图书借阅管理系统{% endblock %}
+
+{% block content %}
+
+<!-- Hero 横幅 -->
+<div class="hero-section text-white">
+    <div class="row align-items-center">
+        <div class="col-md-8">
+            <h1 class="hero-title">
+                <i class="bi bi-book-half me-2"></i>在线图书借阅系统
+            </h1>
+            <p class="hero-sub">海量图书任你挑选，随时借阅、随时归还，轻松管理你的阅读生活</p>
+            <a href="{{ url_for('book_list') }}" class="hero-btn">
+                <i class="bi bi-search"></i> 浏览全部图书
+            </a>
+            {% if not session.get('user_id') %}
+            <a href="{{ url_for('register') }}"
+               style="background:rgba(255,255,255,.18);color:#fff;font-weight:600;
+                      padding:11px 26px;border-radius:50px;border:1.5px solid rgba(255,255,255,.4);
+                      text-decoration:none;font-size:.97rem;display:inline-flex;align-items:center;
+                      gap:7px;margin-left:12px;transition:background .18s"
+               onmouseover="this.style.background='rgba(255,255,255,.28)'"
+               onmouseout="this.style.background='rgba(255,255,255,.18)'">
+                <i class="bi bi-person-plus"></i> 免费注册
+            </a>
+            {% endif %}
+        </div>
+        <div class="col-md-4 d-none d-md-flex justify-content-end">
+            <div style="font-size:7rem;opacity:.18;line-height:1">
+                <i class="bi bi-book-half"></i>
+            </div>
+        </div>
+    </div>
+    <!-- 统计数字 -->
+    <div class="hero-stats mt-4 pt-4" style="border-top:1px solid rgba(255,255,255,.2)">
+        <div class="hero-stat">
+            <div class="num">10+</div>
+            <div class="label">馆藏图书</div>
+        </div>
+        <div class="hero-stat">
+            <div class="num">免费</div>
+            <div class="label">注册借阅</div>
+        </div>
+        <div class="hero-stat">
+            <div class="num">随时</div>
+            <div class="label">在线还书</div>
+        </div>
+    </div>
+</div>
+
+<!-- 最新上架 -->
+<div class="section-title">
+    <span class="title-dot"></span>
+    <i class="bi bi-stars text-warning"></i> 最新上架
+</div>
+
+<div class="row g-3 mb-5">
+    {% if books %}
+        {% for book in books %}
+        <div class="col-6 col-md-4 col-lg-2">
+            <a href="{{ url_for('book_detail', book_id=book.id) }}" class="text-decoration-none">
+                <div class="book-card h-100">
+                    <img src="{{ url_for('static', filename='images/' + book.cover_image) }}"
+                         class="book-cover" alt="{{ book.title }}"
+                         onerror="this.src='{{ url_for('static', filename='images/default.jpg') }}'">
+                    <div class="card-body">
+                        <div class="book-title" title="{{ book.title }}">{{ book.title }}</div>
+                        <div class="book-author">{{ book.author }}</div>
+                        <span class="stock-badge {% if book.stock > 0 %}bg-success text-white{% else %}bg-light text-secondary{% endif %}">
+                            {% if book.stock > 0 %}可借 {{ book.stock }} 本{% else %}暂无库存{% endif %}
+                        </span>
+                    </div>
+                </div>
+            </a>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="col-12 text-muted">暂无图书，请管理员添加。</div>
+    {% endif %}
+</div>
+
+<!-- 功能介绍 -->
+<div class="section-title">
+    <span class="title-dot"></span>
+    <i class="bi bi-lightning-charge text-primary"></i> 使用指南
+</div>
+<div class="row g-3 mb-2">
+    <div class="col-md-4">
+        <div class="feature-card">
+            <div class="feature-icon-wrap bg-primary bg-opacity-10 text-primary">
+                <i class="bi bi-person-plus"></i>
+            </div>
+            <h6>注册账号</h6>
+            <p>免费注册，填写用户名和邮箱即可完成注册，全程只需一分钟</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="feature-card">
+            <div class="feature-icon-wrap bg-success bg-opacity-10 text-success">
+                <i class="bi bi-search"></i>
+            </div>
+            <h6>搜索借阅</h6>
+            <p>按书名或作者快速搜索，确认库存后一键借阅，方便快捷</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="feature-card">
+            <div class="feature-icon-wrap bg-warning bg-opacity-10 text-warning">
+                <i class="bi bi-arrow-return-left"></i>
+            </div>
+            <h6>随时归还</h6>
+            <p>在"我的借阅"页面查看所有借阅记录，点击按钮即可一键还书</p>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
